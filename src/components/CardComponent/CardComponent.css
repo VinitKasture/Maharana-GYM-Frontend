@@ -1,0 +1,58 @@
+.custom-card {
+    display: flex;
+    justify-content: start;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 1em;
+    margin: 0.5em;
+    width: 100%;
+    max-width: 50em;
+    background-color: #333;
+    color: #fff;
+    border: 2px solid red;
+    transition: ease;
+    font-family: "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+.custom-card img {
+    margin-right: 1em;
+    max-width: 13em;
+    aspect-ratio: 1 / 1;
+}
+
+.custom-card .profile {
+    flex-grow: 1;
+    flex-basis: 0.3em;
+}
+
+.custom-card .profile .details {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    width: 100%;
+    border-radius: 0.3em;
+    padding: 0.5em;
+    background-color: #222;
+}
+
+.custom-card .profile .action {
+    display: flex;
+    margin: 0.5em 0;
+}
+
+.custom-card .profile .action button {
+    flex-grow: 1;
+    border: 0;
+    outline: 0;
+    padding: 0.5em;
+    margin: 0 0.5em;
+    font-weight: 800;
+    border-radius: 0.3em;
+}
+
+.custom-card .profile .action .button.error {
+    --variant-softColor: var(--joy-palette-danger-700, #7D1212);
+    --variant-softBg: var(--joy-palette-danger-100, #FCE4E4);
+
+    color: var(--variant-softColor);
+    background-color: var(--variant-softBg);
+}
