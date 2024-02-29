@@ -16,6 +16,8 @@ import useAuth from "../../Hooks/useAuth";
 function Index() {
   const navigate = useNavigate();
 
+  useAuth();
+
   const [workoutTypes, setWorkoutTypes] = useState([]);
   const [assignedWorkouts, setAssignedWorkouts] = useState([]);
   const [seletedWorkout, setSeletedWorkout] = useState("Back");

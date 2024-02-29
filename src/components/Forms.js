@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import moment from "moment-timezone";
 import Datetime from "react-datetime";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -17,6 +17,8 @@ import {
 } from "@fluentui/react";
 import BioCard from "./BioCard/BioCard";
 import { ChoosePhotoWidget } from "./Widgets";
+import useAuth from "../Hooks/useAuth";
+import { Toast } from "../../components/Alert/Alert";
 
 initializeIcons();
 
@@ -49,6 +51,20 @@ const theme2 = createTheme({
 
 export const GeneralInfoForm = () => {
   const [birthday, setBirthday] = useState("");
+
+  useAuth();
+
+  const [currentUserData, setCurrentUserData] = useState(useAuth);
+
+  const getUserProfile = async () => {
+    try {
+      const response = await AuthApi;
+    } catch (error) {
+      return Toast(`${error.response.data.error}`);
+    }
+  };
+
+  useEffect(() => {}, []);
 
   return (
     <Box
@@ -242,72 +258,6 @@ export const GeneralInfoForm = () => {
                   autoComplete="off"
                   label="Address"
                   placeholder="Enter your home address"
-                  InputProps={{
-                    className: "textfield",
-                  }}
-                  InputLabelProps={{
-                    className: "textfield__label",
-                  }}
-                />
-              </Form.Group>
-            </Col>
-          </Row>
-          <Row>
-            <Col sm={4} className="mb-3">
-              <Form.Group id="city">
-                <TextField
-                  margin="normal"
-                  required
-                  fullWidth
-                  variant="outlined"
-                  id="city"
-                  label="City"
-                  placeholder="City"
-                  InputProps={{
-                    className: "textfield",
-                  }}
-                  InputLabelProps={{
-                    className: "textfield__label",
-                  }}
-                />
-              </Form.Group>
-            </Col>
-            <Col sm={4} className="mb-3">
-              <Form.Group className="mb-2">
-                <TextField
-                  select
-                  margin="normal"
-                  required
-                  fullWidth
-                  variant="outlined"
-                  id="state"
-                  label="Select state"
-                  placeholder="State"
-                  SelectProps={{
-                    native: true,
-                  }}
-                  InputProps={{
-                    className: "textfield",
-                  }}
-                  InputLabelProps={{
-                    className: "textfield__label",
-                  }}
-                >
-                  <option value="WY">Wyoming</option>
-                </TextField>
-              </Form.Group>
-            </Col>
-            <Col sm={4}>
-              <Form.Group id="zip">
-                <TextField
-                  margin="normal"
-                  required
-                  fullWidth
-                  variant="outlined"
-                  id="zip"
-                  label="ZIP"
-                  type="tel"
-                  placeholder="ZIP"
                   InputProps={{
                     className: "textfield",
                   }}

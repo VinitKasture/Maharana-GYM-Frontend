@@ -1,18 +1,20 @@
 import { jwtDecode } from "jwt-decode";
-import { Toast } from "../components/Alert/Alert";
-
-function redirectToLogin() {
-  window.location.href = "/login";
-}
 
 function useAuth() {
   const token = localStorage.getItem("accessToken");
 
   if (!token) {
-    return redirectToLogin();
+    return null;
+  }
+
+  const { _id, firstName, lastName, role, email, exp } = jwtDecode(token);
+
+  const currentDate = new Date();
+
+  if (exp * 1000 < currentDate.getTime()) {
+    return null;
   } else {
-    const { _id, firstName, lastName, email, role } = jwtDecode(token);
-    return { _id, firstName, lastName, email, role };
+    return { _id, firstName, lastName, role, email, exp, isValid: true };
   }
 }
 

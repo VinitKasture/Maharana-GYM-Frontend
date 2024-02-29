@@ -128,11 +128,12 @@ function Index() {
     const firstName = data.get("firstName");
     const lastName = data.get("lastName");
     const email = data.get("email");
+    const address = data.get("address");
     const password = data.get("password");
     const gender = genderOptions[selectedIndex];
     const role = roleOptions[selectedRoleIndex];
 
-    if (!firstName || !lastName || !email || !password) {
+    if (!firstName || !lastName || !email || !password || !address) {
       return showError("Please fill all fields", "warning");
     }
 
@@ -161,6 +162,7 @@ function Index() {
         lastName: lastName,
         email: email,
         password: password,
+        address: address,
         gender: gender,
         role: role,
       });
@@ -275,6 +277,23 @@ function Index() {
                   type="password"
                   id="password"
                   autoComplete="new-password"
+                  InputProps={{
+                    className: "textfield",
+                  }}
+                  InputLabelProps={{
+                    className: "textfield__label",
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  required
+                  fullWidth
+                  name="address"
+                  label="address"
+                  type="address"
+                  id="address"
+                  autoComplete="address"
                   InputProps={{
                     className: "textfield",
                   }}
