@@ -1,15 +1,23 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Col, Row, Card, Form } from "@themesberg/react-bootstrap";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import Box from "@mui/material/Box";
 import theme from "../../Providers/ThemeProviders/themeProvider";
 import { createTheme, ThemeProvider } from "@fluentui/react";
-import BioCard from "../../components/BioCard/BioCard";
 import { Toast } from "../../components/Alert/Alert";
 import AuthLayout from "../../Layout/AuthLayout";
 import { AuthApi } from "../../utils/api";
 import useAuth from "../../Hooks/useAuth";
+import { v4 } from "uuid";
+import { storeImage } from "../../Firebase/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import Avatar from "@mui/joy/Avatar";
+import Chip from "@mui/joy/Chip";
+import ButtonGroup from "@mui/joy/ButtonGroup";
+import CardContent from "@mui/joy/CardContent";
+import Typography from "@mui/joy/Typography";
+import Card2 from "@mui/joy/Card";
 
 const theme2 = createTheme({
   palette: {
@@ -40,10 +48,45 @@ const theme2 = createTheme({
 
 function Profile() {
   const [birthday, setBirthday] = useState("");
+  const [userDetails, setUserDetails] = useState({});
+
+  const imageTypes = ["image/png", "image/jpg", "image/jpeg"];
+
+  const fileInputRef = useRef(null);
+
+  const handlePinIconClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleFileInputChange = async (e) => {
+    const confirm = window.confirm(
+      "Do you really want to change profile picture?"
+    );
+    if (confirm) {
+      try {
+        if (!imageTypes.includes(e.target.files[0].type)) {
+          return alert("Please select a valid image!");
+        }
+        const imgRef = ref(storeImage, `files/${v4()}`);
+        await uploadBytes(imgRef, e.target.files[0]);
+        const url = await getDownloadURL(imgRef);
+        console.log(url);
+        const response = await AuthApi.post("/auth/update-user-profile-pic", {
+          profilePic: url,
+        });
+        if (response.status === 200) {
+          getUserProfile();
+        }
+      } catch (error) {
+        alert(
+          `${error?.response?.data?.error}` ||
+            "Error uploading image to Firebase"
+        );
+      }
+    }
+  };
 
   useAuth();
-
-  const [userDetails, setUserDetails] = useState();
 
   const getUserProfile = async () => {
     try {
@@ -56,11 +99,38 @@ function Profile() {
     }
   };
 
+  const handleUserDetailsChange = (e) => {
+    const { name, value } = e.target;
+
+    setUserDetails((prevObject) => ({
+      ...prevObject,
+      [name]: value,
+    }));
+  };
+
+  const updateUserInformation = async (e) => {
+    const confirm = window.confirm(
+      "Are you sure you want to update this information"
+    );
+    if (!confirm) return;
+    try {
+      e.preventDefault();
+
+      const response = await AuthApi.post("/auth/update-user-details", {
+        userDetails,
+      });
+      if (response.status === 200) {
+        getUserProfile();
+      }
+    } catch (error) {
+      Toast(`${error.response.data.error}`);
+    }
+  };
+
   useEffect(() => {
     getUserProfile();
   }, []);
 
-  console.log(userDetails);
   return (
     <AuthLayout>
       <div
@@ -106,7 +176,54 @@ function Profile() {
                     alignItems: "center",
                   }}
                 >
-                  <BioCard />
+                  <Card2
+                    sx={{
+                      width: 320,
+                      maxWidth: "100%",
+                      boxShadow: "lg",
+                      backgroundColor: "#ff6333",
+                      borderColor: "#000",
+                    }}
+                  >
+                    <CardContent
+                      sx={{
+                        alignItems: "center",
+                        textAlign: "center",
+                      }}
+                    >
+                      <Avatar
+                        src={
+                          userDetails.profilePic ||
+                          require("../../assets/profile-picture-icon.jpg")
+                        }
+                        sx={{ "--Avatar-size": "4rem" }}
+                        ref={fileInputRef}
+                        onClick={handlePinIconClick}
+                      />
+                      <input
+                        type="file"
+                        style={{ display: "none" }}
+                        ref={fileInputRef}
+                        onChange={handleFileInputChange}
+                      />
+                      <Chip
+                        size="sm"
+                        variant="soft"
+                        color="primary"
+                        sx={{
+                          mt: -1,
+                          mb: 1,
+                          borderColor: "background.surface",
+                        }}
+                      >
+                        PRO
+                      </Chip>
+                      <Typography level="title-lg text-white">
+                        {userDetails.firstName + " " + userDetails.lastName ||
+                          "Loading..."}
+                      </Typography>
+                    </CardContent>
+                  </Card2>
                 </Col>
               </Row>
               <h5 className="mb-4">General information</h5>
@@ -114,7 +231,8 @@ function Profile() {
                 <Col md={6} className="mb-3">
                   <Form.Group id="firstName">
                     <TextField
-                      value={userDetails && userDetails.firstName}
+                      value={userDetails.firstName}
+                      onChange={handleUserDetailsChange}
                       margin="normal"
                       required
                       fullWidth
@@ -137,15 +255,16 @@ function Profile() {
                 <Col md={6} className="mb-3">
                   <Form.Group id="lastName">
                     <TextField
-                      value={userDetails && userDetails.lastName}
+                      value={userDetails.lastName}
+                      onChange={handleUserDetailsChange}
                       margin="normal"
                       required
                       fullWidth
                       variant="outlined"
                       id="lastName"
                       label="Last Name"
-                      name="email"
-                      autoComplete="firstName"
+                      name="lastName"
+                      autoComplete="lastName"
                       autoFocus
                       InputProps={{
                         className: "textfield",
@@ -189,7 +308,8 @@ function Profile() {
                 <Col md={6} className="mb-3">
                   <Form.Group id="gender">
                     <TextField
-                      value={userDetails && userDetails.gender}
+                      value={userDetails.gender}
+                      onChange={handleUserDetailsChange}
                       select
                       margin="normal"
                       required
@@ -219,7 +339,8 @@ function Profile() {
                 <Col md={6} className="mb-3">
                   <Form.Group id="email">
                     <TextField
-                      value={userDetails && userDetails.email}
+                      value={userDetails.email}
+                      onChange={handleUserDetailsChange}
                       margin="normal"
                       required
                       placeholder="Email"
@@ -242,7 +363,8 @@ function Profile() {
                 <Col md={6} className="mb-3">
                   <Form.Group id="phone">
                     <TextField
-                      value={userDetails && userDetails.firstName}
+                      value={userDetails.number}
+                      onChange={handleUserDetailsChange}
                       margin="normal"
                       required
                       fullWidth
@@ -268,7 +390,8 @@ function Profile() {
                 <Col sm={12} className="mb-3">
                   <Form.Group id="address">
                     <TextField
-                      value={userDetails && userDetails.address}
+                      value={userDetails.address}
+                      onChange={handleUserDetailsChange}
                       margin="normal"
                       required
                       fullWidth
@@ -301,6 +424,7 @@ function Profile() {
                   InputProps={{
                     className: "primaryOrange_button",
                   }}
+                  onClick={updateUserInformation}
                 >
                   Save All
                 </Button>

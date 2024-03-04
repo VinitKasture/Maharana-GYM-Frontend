@@ -123,17 +123,19 @@ function Index() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    showError(null, null);
     const data = new FormData(event.currentTarget);
 
     const firstName = data.get("firstName");
     const lastName = data.get("lastName");
-    const email = data.get("email");
+    const email = data.get("email").toLowerCase();
+    const number = data.get("number");
     const address = data.get("address");
     const password = data.get("password");
     const gender = genderOptions[selectedIndex];
     const role = roleOptions[selectedRoleIndex];
 
-    if (!firstName || !lastName || !email || !password || !address) {
+    if (!firstName || !lastName || !email || !password || !address || !number) {
       return showError("Please fill all fields", "warning");
     }
 
@@ -156,12 +158,18 @@ function Index() {
       );
     }
 
+    if (number.split("").length !== 10) {
+      return showError("Invalid phone number!", "warning");
+    }
+
+    console.log(firstName, lastName, email, password, number, address);
     try {
       const response = await AuthApi.post("/auth/signup", {
         firstName: firstName,
         lastName: lastName,
         email: email,
         password: password,
+        number: number,
         address: address,
         gender: gender,
         role: role,
@@ -277,6 +285,23 @@ function Index() {
                   type="password"
                   id="password"
                   autoComplete="new-password"
+                  InputProps={{
+                    className: "textfield",
+                  }}
+                  InputLabelProps={{
+                    className: "textfield__label",
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  required
+                  fullWidth
+                  name="number"
+                  label="number"
+                  type="number"
+                  id="number"
+                  autoComplete="number"
                   InputProps={{
                     className: "textfield",
                   }}
@@ -598,7 +623,14 @@ function Index() {
             </Button>
             <Grid container justifyContent="flex-end">
               <Grid item>
-                <Link href="/login" variant="body2">
+                <Link
+                  href="/login"
+                  variant="body2"
+                  style={{
+                    color: "var(--primary-orange)",
+                    textDecoration: "none",
+                  }}
+                >
                   Already have an account? Sign in
                 </Link>
               </Grid>
