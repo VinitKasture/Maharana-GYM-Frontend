@@ -18,6 +18,7 @@ import Stack from "@mui/material/Stack";
 import ButtonGroup from "@mui/material/ButtonGroup";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import ClickAwayListener from "@mui/material/ClickAwayListener";
+import { DateRangePicker } from "rsuite";
 import Grow from "@mui/material/Grow";
 import Paper from "@mui/material/Paper";
 import Popper from "@mui/material/Popper";
@@ -67,6 +68,7 @@ function Index() {
   const anchorRef2 = useRef(null);
   const [openMembershipMenu, setOpenMembershipMenu] = useState(false);
   const [selectedMembershipIndex, setSelectedMembershipIndex] = useState(0);
+  const [membership, setMembership] = useState();
 
   const showError = (message, type) => {
     setError(message);
@@ -151,6 +153,10 @@ function Index() {
       );
     }
 
+    if (!membership) {
+      return showError("Please set memmbership!", "warning");
+    }
+
     if (password.split("").length < 6 || password.split("").length > 12) {
       return showError(
         "Password should be between 6 to 12 characters ",
@@ -161,8 +167,6 @@ function Index() {
     if (number.split("").length !== 10) {
       return showError("Invalid phone number!", "warning");
     }
-
-    console.log(firstName, lastName, email, password, number, address);
     try {
       const response = await AuthApi.post("/auth/signup", {
         firstName: firstName,
@@ -172,12 +176,15 @@ function Index() {
         number: number,
         address: address,
         gender: gender,
+        membership: {
+          from: membership[0],
+          to: membership[1],
+        },
         role: role,
       });
 
       if (response.status === 200) {
-        localStorage.setItem("accessToken", response?.data?.token);
-        navigate("/");
+        navigate("/login");
         Toast("Signup Successfull!");
       }
     } catch (error) {
@@ -522,7 +529,7 @@ function Index() {
                       width: "100%",
                     }}
                   >
-                    <Button
+                    {/* <Button
                       style={{
                         width: "100%",
                       }}
@@ -541,8 +548,18 @@ function Index() {
                         {membershipOptions[selectedMembershipIndex]}{" "}
                         {selectedMembershipIndex !== 0 ? "Months" : "Month"}
                       </strong>
-                    </Button>
-                    <Button
+                    </Button> */}
+                    <DateRangePicker
+                      onChange={(e) => {
+                        setMembership(e);
+                      }}
+                      appearance="subtle"
+                      showOneCalendar
+                      placement="auto"
+                      size="md"
+                      placeholder="Set Membership"
+                    />
+                    {/* <Button
                       size="small"
                       aria-controls={
                         openMembershipMenu ? "split-button-menu" : undefined
@@ -557,7 +574,7 @@ function Index() {
                       }}
                     >
                       <ArrowDropDownIcon />
-                    </Button>
+                    </Button> */}
                   </ButtonGroup>
                   <Popper
                     sx={{

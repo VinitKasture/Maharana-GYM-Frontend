@@ -10,151 +10,142 @@ import { Toast } from "../../components/Alert/Alert";
 import CardOverflow from "@mui/joy/CardOverflow";
 import AspectRatio from "@mui/joy/AspectRatio";
 import GuestLayout from "../../Layout/GuestLayout";
-import { useNavigate } from "react-router-dom";
 import useAuth from "../../Hooks/useAuth";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
 
 function Index() {
-  const navigate = useNavigate();
-
-  useAuth();
-
   const [workoutTypes, setWorkoutTypes] = useState([]);
-  const [assignedWorkouts, setAssignedWorkouts] = useState([]);
+  const [assignedWorkouts, setAssignedWorkouts] = useState(null);
   const [seletedWorkout, setSeletedWorkout] = useState("Back");
   const [currentUserData, setCurrentUserData] = useState(useAuth);
 
-  const getAllWorkoutTypes = async () => {
-    try {
-      const response = await AuthApi.get("/workout/get-workout-types");
-      setWorkoutTypes(response.data.result);
-    } catch (error) {
-      return Toast(`${error.response.data.error}`);
-    }
-  };
-
   const getWorkoutByType = async () => {
     try {
-      const response = await AuthApi.post("/workout/get-workout-by-type", {
-        workoutType: seletedWorkout,
-        userId: currentUserData,
-      });
-      setAssignedWorkouts(response.data.assignedWorkouts);
+      const response = await AuthApi.get("/workout/get-user-workout");
+      setAssignedWorkouts(response.data.result);
     } catch (error) {
       return Toast(`${error.response.data.error}`);
     }
   };
 
   useEffect(() => {
-    getAllWorkoutTypes();
     getWorkoutByType();
-    console.log(currentUserData);
   }, [seletedWorkout]);
 
   return (
     <>
       <GuestLayout>
         <Container>
-          <Card
-            // variant="solid"
-            // color="warning"
-            sx={{
-              maxWidht: "30em",
-              width: "100%",
-              my: 2,
-              border: "1px solid red",
-              backgroundColor: "#b22a00",
-            }}
-          >
-            <Box
-              sx={{
-                my: 3,
-              }}
+          {currentUserData.role === "Admin" ||
+          currentUserData.role === "SuperAdmin" ? (
+            <div
               style={{
                 display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                flexWrap: "wrap",
+                maxWidht: "30em",
+                width: "100%",
+                margin: "1rem",
+                padding: "0.5rem",
+                border: "1px solid red",
+                borderRadius: "0.5rem",
+                backgroundColor: "#b22a00",
               }}
             >
-              {workoutTypes &&
-                workoutTypes.map((type, index) => (
-                  <Card
-                    orientation="horizontal"
-                    variant="soft"
-                    color="danger"
-                    sx={{
-                      maxWidth: 260,
-                      margin: "0.3em",
-                      flex: 1,
-                      flexBasis: "13em",
-                    }}
-                    key={index}
-                    onClick={() => {
-                      setSeletedWorkout(type);
-                    }}
-                  >
-                    <CardOverflow>
-                      <AspectRatio ratio="1" sx={{ width: 90 }}>
-                        <img
-                          srcSet={require(`../../assets/${type}.png`)}
-                          loading="lazy"
-                          alt=""
-                        />
-                      </AspectRatio>
-                    </CardOverflow>
-                    <CardContent>
-                      <Typography
-                        fontWeight="md"
-                        textColor="warning.plainColor"
-                      >
-                        {type}
-                      </Typography>
-                      <Typography level="body-sm">30 Reps</Typography>
-                    </CardContent>
-                  </Card>
-                ))}
-            </Box>
-            <div>
-              <Box
-                sx={{
-                  display: "flex",
-                  gap: 0.5,
-                  flexWrap: "wrap",
+              <Button
+                color="warning"
+                style={{
+                  // minWidth: "8rem",
+                  // maxWidth: "12rem",
+                  flex: 1,
+                  marginRight: "0.5rem",
                 }}
+                onClick={() => (window.location.href = "/profile")}
               >
-                {assignedWorkouts && assignedWorkouts.length > 0 ? (
-                  assignedWorkouts.map((workout, index) => (
-                    <Button
-                      size="sm"
-                      key={index}
-                      style={{
-                        // flexBasis: "8em",
-                        maxWidth: "fit-content",
-                        backgroundColor: "#000",
-                        margin: "0.3em",
-                        flex: 1,
-                      }}
-                    >
-                      {workout.name}
-                    </Button>
-                  ))
-                ) : (
-                  <Button
-                    size="sm"
-                    style={{
-                      flexBasis: "8em",
-                      maxWidth: "max-content",
-                      backgroundColor: "#000",
-                      margin: "0.3em",
-                      flex: 1,
-                    }}
-                  >
-                    No Workout Assigned!
-                  </Button>
-                )}
-              </Box>
+                <AccountCircleIcon style={{ marginRight: "0.5rem" }} />
+                Profile
+              </Button>
+              <Button
+                color="warning"
+                style={{ flex: 1 }}
+                onClick={() => (window.location.href = "/assign-workout")}
+              >
+                <FitnessCenterIcon style={{ marginRight: "0.5rem" }} />
+                Assign Workouts
+              </Button>
             </div>
-          </Card>
+          ) : (
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                maxWidht: "30em",
+                width: "100%",
+                my: 2,
+                padding: "1rem",
+                border: "1px solid red",
+                backgroundColor: "#b22a00",
+              }}
+            >
+              {assignedWorkouts && assignedWorkouts.length > 0 ? (
+                assignedWorkouts.map((workout) => {
+                  return (
+                    <Card
+                      orientation="horizontal"
+                      variant="outlined"
+                      sx={{ maxWidth: 300, width: "100%", m: 1 }}
+                    >
+                      <CardOverflow>
+                        <AspectRatio ratio="1" sx={{ width: 90 }}>
+                          <img
+                            src={
+                              require(`../../assets/${workout.exerciseType}.png`) ||
+                              require("../../assets/profile-cover.jpg")
+                            }
+                            srcSet={
+                              require(`../../assets/${workout.exerciseType}.png`) ||
+                              require("../../assets/profile-cover.jpg")
+                            }
+                            loading="lazy"
+                            alt=""
+                          />
+                        </AspectRatio>
+                      </CardOverflow>
+                      <CardContent>
+                        <Typography
+                          fontWeight="md"
+                          textColor="success.plainColor"
+                        >
+                          {workout.title}
+                        </Typography>
+                        {/* <Typography level="body-sm">California, USA</Typography> */}
+                      </CardContent>
+                      <CardOverflow
+                        variant="soft"
+                        color="primary"
+                        sx={{
+                          px: 0.2,
+                          writingMode: "vertical-rl",
+                          justifyContent: "center",
+                          fontSize: "xs",
+                          fontWeight: "xl",
+                          letterSpacing: "1px",
+                          textTransform: "uppercase",
+                          borderLeft: "1px solid",
+                          borderColor: "divider",
+                        }}
+                      >
+                        MAHARANA
+                      </CardOverflow>
+                    </Card>
+                  );
+                })
+              ) : (
+                <Typography fontWeight="lg" style={{ color: "white" }}>
+                  No workouts yet !
+                </Typography>
+              )}
+            </div>
+          )}
         </Container>
       </GuestLayout>
     </>

@@ -45,10 +45,10 @@ function Index() {
       });
       if (response.status === 200) {
         localStorage.setItem("accessToken", response?.data?.token);
-        navigate("/");
+        window.location.href = "/";
       }
     } catch (error) {
-      return Toast(`${error.response.data.error}`);
+      return Toast(`${error.response?.data?.error}`);
     }
   };
 

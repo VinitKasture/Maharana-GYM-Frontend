@@ -26,7 +26,6 @@ function AuthLayout(props) {
     <>
       <Box>
         <Box className="guestLayout">
-          {/* <div className="background-image"></div> */}
           <Header />
           <Container>{props.children}</Container>
         </Box>

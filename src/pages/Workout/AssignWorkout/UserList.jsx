@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { cloneElement, useEffect, useRef, useState } from "react";
 import Box from "@mui/joy/Box";
 import Button from "@mui/joy/Button";
 import Card from "@mui/joy/Card";
@@ -12,32 +12,85 @@ import Chip from "@mui/joy/Chip";
 import ChipDelete from "@mui/joy/ChipDelete";
 import { AdminApi, AuthApi, GuestApi } from "../../../utils/api";
 import { Toast } from "../../../components/Alert/Alert";
-import DeleteForever from "@mui/icons-material/DeleteForever";
-import List from "@mui/joy/List";
-import ListItemButton from "@mui/joy/ListItemButton";
 import ListItem from "@mui/joy/ListItem";
-import Home from "@mui/icons-material/Home";
-import AddIcon from "@mui/icons-material/Add";
-import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
 import CircularProgress from "@mui/material/CircularProgress";
+import { Calendar, dateFnsLocalizer } from "react-big-calendar";
+import "react-big-calendar/lib/css/react-big-calendar.css";
+import enUS from "date-fns/locale/en-US";
+import format from "date-fns/format";
+import parse from "date-fns/parse";
+import startOfWeek from "date-fns/startOfWeek";
+import getDay from "date-fns/getDay";
+import Input from "@mui/joy/Input";
+import Dropdown from "react-bootstrap/Dropdown";
 
-// const ListItem = styled("li")(({ theme }) => ({
-//   margin: theme.spacing(0.5),
-// }));
+const locales = {
+  "en-US": enUS,
+};
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek,
+  getDay,
+  locales,
+});
 
 function UserList({ users }) {
   const [isLoading, setIsLoading] = useState(false);
   const [workoutTypes, setWorkoutTypes] = useState();
-  const [seletedWorkout, setSeletedWorkout] = useState("Back");
+  const [selectedWorkout, setSelectedWorkout] = useState("Back");
   const [open, setOpen] = useState(false);
-  const [assignedWorkouts, setAssignedWorkouts] = useState();
+  const [profileModalOpen, setProfileModalClose] = useState(false);
+  // const [assignedWorkouts, setAssignedWorkouts] = useState();
   const [unAssignedWorkouts, setUnAssignedWorkouts] = useState();
-
+  const [contextMenuInfo, setContextMenuInfo] = useState();
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedDate, setSelectedDate] = useState();
+  const [selectedDateFormatTwo, setSelectedDateFormatTwo] = useState();
   const [currentUserData, setCurrentUserData] = useState();
+  const [newEvent, setNewEvent] = useState({
+    workoutId: null,
+    selectedExercise: null,
+    selectedWorkoutType: selectedWorkout,
+    recReps: null,
+    recSets: null,
+  });
+  const [events, setEvents] = useState([]);
+  const [popupViewMode, setPopupViewMode] = useState(0);
+
+  const components = {
+    event: ({ event }) => {
+      const title = event.title;
+      return <ListItem level="title-md">{title}</ListItem>;
+    },
+  };
+
+  const openCalendarPopup = (e) => {
+    setAnchorEl(true);
+    setSelectedDate(new Date());
+
+    const rawDate = e.slots[0];
+
+    let day = rawDate.getDate().toString().padStart(2, "0");
+    let month = (rawDate.getMonth() + 1).toString().padStart(2, "0");
+    let year = rawDate.getFullYear().toString();
+
+    let formattedDate = year + "-" + month + "-" + day;
+    console.log(formattedDate, rawDate);
+    setSelectedDateFormatTwo(rawDate);
+    setSelectedDate(formattedDate);
+  };
+
+  const closeCalendarPopup = (e) => {
+    setAnchorEl(false);
+    setSelectedDate(null);
+    setSelectedDateFormatTwo(null);
+    setNewEvent(null);
+  };
 
   const setModalOpen = async (user) => {
     setOpen(true);
-    setCurrentUserData(user._id);
+    setCurrentUserData(user);
   };
 
   const setModalClose = async () => {
@@ -46,7 +99,7 @@ function UserList({ users }) {
   };
 
   const handleSelectedWorkoutClick = async (workout) => {
-    setSeletedWorkout(workout);
+    setSelectedWorkout(workout);
   };
 
   const getAllWorkoutTypes = async () => {
@@ -65,11 +118,11 @@ function UserList({ users }) {
     try {
       setIsLoading(true);
       const response = await AuthApi.post("/workout/get-workout-by-type", {
-        workoutType: seletedWorkout,
-        userId: currentUserData,
+        workoutType: selectedWorkout,
+        userId: currentUserData._id,
       });
-      setAssignedWorkouts(response.data.assignedWorkouts);
-      setUnAssignedWorkouts(response.data.otherExercises);
+      // setAssignedWorkouts(response.data.assignedWorkouts);
+      setUnAssignedWorkouts(response.data.data);
     } catch (error) {
       return Toast(`${error.response.data.error}`);
     } finally {
@@ -77,28 +130,55 @@ function UserList({ users }) {
     }
   };
 
-  const assignWorkoutToUser = async (workoutId) => {
+  const getUserWorkout = async () => {
     try {
       setIsLoading(true);
+      const response = await AdminApi.get("/get-user-workouts", {
+        params: {
+          userId: currentUserData._id,
+          startDate: selectedDate,
+        },
+      });
+      let events = response.data.result.map((event) => {
+        event.start = new Date(event.start);
+        event.end = new Date(event.end);
+        return event;
+      });
+
+      setEvents(events);
+    } catch (error) {
+      Toast(`${error.response.data.error}`);
+    }
+    setIsLoading(false);
+  };
+
+  const assignWorkoutToUser = async () => {
+    try {
+      setIsLoading(true);
+
+      if (!currentUserData) {
+        return alert("User id not found!");
+      } else if (!newEvent.workoutId) {
+        return alert("Select an exercise!");
+      } else if (!newEvent.selectedExercise) {
+        return alert("Please select exercise!");
+      } else if (!newEvent.recReps) {
+        return alert("Please provide recommended reps!");
+      } else if (!newEvent.recSets) {
+        return alert("Please provide recommended sets!");
+      }
+
       const response = await AdminApi.post("/assign-workout-to-user", {
-        userId: currentUserData,
-        workoutId: workoutId,
+        userId: currentUserData._id,
+        workoutId: newEvent?.workoutId,
+        selectedWorkoutType: selectedWorkout,
+        title: `${newEvent.selectedExercise} ${newEvent.recReps}R - ${newEvent.recSets}S`,
+        date: selectedDate,
       });
 
       if (response.status === 200) {
         Toast("Workout Added");
-        console.log(response);
-
-        setAssignedWorkouts((prevAssignedWorkouts) => [
-          ...prevAssignedWorkouts,
-          response.data.result,
-        ]);
-
-        setUnAssignedWorkouts((prevUnAssignedWorkouts) =>
-          prevUnAssignedWorkouts.filter(
-            (workout) => workout._id !== response.data.result._id
-          )
-        );
+        getUserWorkout();
       }
     } catch (error) {
       return Toast(`${error.response.data.error}`);
@@ -107,42 +187,57 @@ function UserList({ users }) {
     }
   };
 
-  const unAssignWorkoutToUser = async (workoutId) => {
+  const unAssignWorkoutToUser = async (event) => {
     try {
       setIsLoading(true);
       const response = await AdminApi.post("/unassign-workout-to-user", {
-        userId: currentUserData,
-        workoutId: workoutId,
+        userId: currentUserData._id,
+        _id: event._id,
       });
 
       if (response.status === 200) {
         Toast("Workout Removed!");
-        console.log(response);
-
-        setAssignedWorkouts((prevAssignedWorkouts) =>
-          prevAssignedWorkouts.filter(
-            (workout) => workout._id !== response.data.result._id
-          )
-        );
-
-        setUnAssignedWorkouts((prevUnAssignedWorkouts) => [
-          ...prevUnAssignedWorkouts,
-          response.data.result,
-        ]);
+        getUserWorkout();
       }
     } catch (error) {
       return Toast(`${error.response.data.error}`);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const formatDate = (date) => {
+    let newDate = new Date(date);
+    return (newDate = newDate.toDateString());
+  };
+
+  const addEvent = async (event) => {
+    const date = selectedDate.split("-");
+
+    const year = date[0];
+    const month = date[1];
+    const day = date[2];
+
+    console.log(new Date(year, month - 1, day));
+    const newEventObj = {
+      title:
+        event?.selectedExercise +
+        ` ${newEvent?.recReps}R - ${newEvent?.recSets}S`,
+      allDay: true,
+      start: new Date(year, month - 1, day),
+      end: new Date(year, month - 1, day),
+    };
+    setEvents([...events, newEventObj]);
+    setNewEvent(null);
   };
 
   useEffect(() => {
     if (open) {
       getAllWorkoutTypes();
       getWorkoutByType();
+      getUserWorkout();
     }
-  }, [open, seletedWorkout]);
+  }, [open, selectedWorkout]);
 
   return (
     <>
@@ -152,8 +247,6 @@ function UserList({ users }) {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          // width: "100%",
-          // maxWidth: "80em",
         }}
       >
         {users &&
@@ -190,8 +283,13 @@ function UserList({ users }) {
                     sx={{ minWidth: 182 }}
                   >
                     <img
-                      src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=286"
-                      srcSet="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=286&dpr=2 2x"
+                      src={
+                        user.profilePic
+                          ? user.profilePic
+                          : require("../../../assets/profile-picture-icon.jpg")
+                      }
+                      // src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=286"
+                      // srcSet="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=286&dpr=2 2x"
                       loading="lazy"
                       alt=""
                     />
@@ -255,7 +353,13 @@ function UserList({ users }) {
                       >
                         Assign Workout
                       </Button>
-                      <Button variant="solid" color="danger">
+                      <Button
+                        variant="solid"
+                        color="danger"
+                        onClick={() => {
+                          window.location.href = `/profile-details?userId=${user?._id}`;
+                        }}
+                      >
                         Details
                       </Button>
                     </Box>
@@ -271,126 +375,37 @@ function UserList({ users }) {
           aria-describedby="nested-modal-description"
           style={{
             width: "90%",
+            minHeight: "50vh",
+            maxHeight: "90vh",
             maxWidth: "60em",
             overflow: "scroll",
           }}
           sx={(theme) => ({
             [theme.breakpoints.only("xs")]: {
-              top: "unset",
+              top: "50%",
               bottom: 0,
-              left: 0,
+              left: "50%",
               right: 0,
               borderRadius: 0,
-              transform: "none",
+              transform: "translate(-50%, -50%)",
               maxWidth: "unset",
             },
           })}
         >
           {!isLoading ? (
             <>
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    // flexBasis: "18.5em",
-                  }}
-                >
-                  <List
-                    sx={{
-                      maxWidth: "fit-content",
-                    }}
-                  >
-                    {workoutTypes ? (
-                      workoutTypes.map((exercise, index) => (
-                        <ListItem
-                          key={index}
-                          onClick={() => {
-                            handleSelectedWorkoutClick(exercise);
-                          }}
-                        >
-                          <ListItemButton
-                            selected={exercise === seletedWorkout}
-                          >
-                            <FitnessCenterIcon>
-                              <Home />
-                            </FitnessCenterIcon>
-                            {exercise}
-                          </ListItemButton>
-                        </ListItem>
-                      ))
-                    ) : (
-                      <CircularProgress color="warning" />
-                    )}
-                  </List>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    flexBasis: "18.5em",
-                    padding: "1em",
-                    flex: 1,
-                    // border: "1px solid red",
-                    maxHeight: "fit-content",
-                  }}
-                >
-                  {assignedWorkouts ? (
-                    assignedWorkouts.map((exercise, index) => (
-                      <Chip
-                        sx={{ height: "fit-content", margin: "0.3em" }}
-                        variant="outlined"
-                        color="danger"
-                        key={index}
-                        onClick={() => alert("You clicked the chip!")}
-                        endDecorator={
-                          <ChipDelete
-                            color="danger"
-                            variant="plain"
-                            onClick={() => unAssignWorkoutToUser(exercise._id)}
-                          >
-                            <DeleteForever />
-                          </ChipDelete>
-                        }
-                      >
-                        {exercise.name}
-                      </Chip>
-                    ))
-                  ) : (
-                    <CircularProgress color="warning" />
-                  )}
-                  {unAssignedWorkouts ? (
-                    unAssignedWorkouts.map((exercise, index) => (
-                      <Chip
-                        sx={{ height: "fit-content", margin: "0.3em" }}
-                        variant="soft"
-                        color="success"
-                        key={index}
-                        onClick={() => alert("You clicked the chip!")}
-                        endDecorator={
-                          <ChipDelete
-                            color="success"
-                            variant="plain"
-                            onClick={() => assignWorkoutToUser(exercise._id)}
-                          >
-                            <AddIcon />
-                          </ChipDelete>
-                        }
-                      >
-                        {exercise.name}
-                      </Chip>
-                    ))
-                  ) : (
-                    <CircularProgress color="warning" />
-                  )}
-                </div>
+              <div>
+                <Calendar
+                  localizer={localizer}
+                  events={events}
+                  style={{ height: 500 }}
+                  // popup={true}
+                  components={components}
+                  selectable
+                  views="month"
+                  onSelectSlot={(e) => openCalendarPopup(e)}
+                />
               </div>
-
               <Box
                 sx={{
                   mt: 1,
@@ -420,6 +435,230 @@ function UserList({ users }) {
           )}
         </ModalDialog>
       </Modal>
+      {anchorEl && (
+        <div
+          style={{
+            position: "fixed",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            height: "fit-content",
+            width: "max-content",
+            maxWidth: "90vw",
+            maxHeight: "60vh",
+            background: "var(--joy-palette-danger-200)",
+            padding: "2rem",
+            borderRadius: "5px",
+            zIndex: 10000,
+          }}
+        >
+          <div>
+            <Button
+              size="sm"
+              variant="outlined"
+              color="danger"
+              style={{ width: "100%" }}
+              onClick={() => {
+                setPopupViewMode(0);
+              }}
+            >
+              Add Event
+            </Button>
+            <Button
+              size="sm"
+              variant="outlined"
+              color="danger"
+              className="my-2"
+              style={{ width: "100%" }}
+              onClick={() => {
+                setPopupViewMode(1);
+              }}
+            >
+              View Events
+            </Button>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+            }}
+          >
+            {popupViewMode == 0 ? (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  flexDirection: "column",
+                  width: "100%",
+                }}
+              >
+                <div style={{ width: "100%", maxWidth: "20rem" }}>
+                  <Input type="date" value={selectedDate} readOnly />
+
+                  <Dropdown className="my-2" style={{ marginY: "0.5rem" }}>
+                    <Dropdown.Toggle
+                      variant="danger"
+                      id="dropdown-basic"
+                      style={{ width: "100%" }}
+                    >
+                      {selectedWorkout || "Workout Type"}
+                    </Dropdown.Toggle>
+
+                    <Dropdown.Menu>
+                      {workoutTypes
+                        ? workoutTypes.map((exercise, index) => {
+                            return (
+                              <Dropdown.Item
+                                key={index}
+                                onClick={() => {
+                                  handleSelectedWorkoutClick(exercise);
+                                }}
+                              >
+                                {exercise}
+                              </Dropdown.Item>
+                            );
+                          })
+                        : " "}
+                    </Dropdown.Menu>
+                  </Dropdown>
+                  <Dropdown>
+                    <Dropdown.Toggle
+                      variant="danger"
+                      id="dropdown-basic"
+                      style={{ width: "100%" }}
+                    >
+                      {newEvent?.selectedExercise || "Exercises"}
+                    </Dropdown.Toggle>
+
+                    <Dropdown.Menu
+                      style={{ maxHeight: "10rem", overflowX: "scroll" }}
+                    >
+                      {unAssignedWorkouts
+                        ? unAssignedWorkouts.map((exercise, index) => {
+                            return (
+                              <Dropdown.Item
+                                key={index}
+                                onClick={() => {
+                                  setNewEvent({
+                                    ...newEvent,
+                                    workoutId: exercise._id,
+                                    selectedExercise: exercise.name,
+                                  });
+                                }}
+                              >
+                                {exercise.name}
+                              </Dropdown.Item>
+                            );
+                          })
+                        : " "}
+                    </Dropdown.Menu>
+                  </Dropdown>
+                  <Dropdown className="my-2">
+                    <Dropdown.Toggle
+                      variant="danger"
+                      id="dropdown-basic"
+                      style={{ width: "100%" }}
+                    >
+                      {newEvent?.recReps || "Recommended Reps"}
+                    </Dropdown.Toggle>
+
+                    <Dropdown.Menu
+                      style={{ maxHeight: "10rem", overflowX: "scroll" }}
+                    >
+                      {Array.from({ length: 30 }).map((_, index) => (
+                        <Dropdown.Item
+                          key={index}
+                          onClick={() => {
+                            setNewEvent({ ...newEvent, recReps: index + 1 });
+                          }}
+                        >
+                          {index + 1}
+                        </Dropdown.Item>
+                      ))}
+                    </Dropdown.Menu>
+                  </Dropdown>
+                  <Dropdown>
+                    <Dropdown.Toggle
+                      variant="danger"
+                      id="dropdown-basic"
+                      style={{ width: "100%" }}
+                    >
+                      {newEvent?.recSets || "Recommended Sets"}
+                    </Dropdown.Toggle>
+
+                    <Dropdown.Menu
+                      style={{ maxHeight: "10rem", overflowX: "scroll" }}
+                    >
+                      {Array.from({ length: 10 }).map((_, index) => (
+                        <Dropdown.Item
+                          key={index}
+                          onClick={() => {
+                            setNewEvent({ ...newEvent, recSets: index + 1 });
+                          }}
+                        >
+                          {index + 1}
+                        </Dropdown.Item>
+                      ))}
+                    </Dropdown.Menu>
+                  </Dropdown>
+
+                  <Button
+                    variant="solid"
+                    color="danger"
+                    className="my-2"
+                    style={{ width: "100%" }}
+                    onClick={() => {
+                      assignWorkoutToUser();
+                    }}
+                  >
+                    Submit
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  maxWidth: "30rem",
+                  overflow: "scroll",
+                }}
+              >
+                {events.map((event) => {
+                  if (
+                    new Date(selectedDate).toDateString() ===
+                    event.start.toDateString()
+                  ) {
+                    return (
+                      <Chip
+                        size="lg"
+                        variant="solid"
+                        color="danger"
+                        className="m-1"
+                        endDecorator={
+                          <ChipDelete
+                            onDelete={() => unAssignWorkoutToUser(event)}
+                          />
+                        }
+                      >
+                        {event.title}
+                      </Chip>
+                    );
+                  }
+                })}
+              </div>
+            )}
+          </div>
+          <Button
+            color="danger"
+            variant="solid"
+            onClick={() => closeCalendarPopup()}
+          >
+            Close
+          </Button>
+        </div>
+      )}
     </>
   );
 }

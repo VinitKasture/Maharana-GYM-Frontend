@@ -7,14 +7,16 @@ function useAuth() {
     return null;
   }
 
-  const { _id, firstName, lastName, role, email, exp } = jwtDecode(token);
+  if (token) {
+    const { _id, firstName, lastName, role, email, exp } = jwtDecode(token);
 
-  const currentDate = new Date();
+    const currentDate = new Date();
 
-  if (exp * 1000 < currentDate.getTime()) {
-    return null;
-  } else {
-    return { _id, firstName, lastName, role, email, exp, isValid: true };
+    if (exp * 1000 < currentDate.getTime()) {
+      return null;
+    } else {
+      return { _id, firstName, lastName, role, email, exp, isValid: true };
+    }
   }
 }
 

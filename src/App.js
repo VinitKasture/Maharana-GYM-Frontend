@@ -9,6 +9,7 @@ import "./App.css";
 import "react-toastify/dist/ReactToastify.css";
 import "rsuite/dist/rsuite-no-reset.min.css";
 import "react-datetime/css/react-datetime.css";
+import "react-big-calendar/lib/css/react-big-calendar.css";
 
 export default function App() {
   return (

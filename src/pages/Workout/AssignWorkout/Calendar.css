@@ -1,0 +1,56 @@
+.rbc-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 36px !important;
+    color: white;
+    font-size: 14px !important;
+    background: #C41C1C;
+}
+
+.rbc-allday-cell {
+    display: none;
+}
+
+.rbc-time-header-cell .rbc-today {
+    background-color: var(--joy-palette-danger-200) !important;
+}
+
+.rbc-time-slot {
+    color: var(--joy-palette-danger-700);
+    font-weight: 600;
+    z-index: 1;
+}
+
+.rbc-event, .rbc-event.rbc-selected {
+    font-weight: bold;
+    background-color: var(--joy-palette-danger-200);
+}
+
+.rbc-event,
+.rbc-background-event {
+    z-index: 2;
+    padding: 0px !important;
+    border: none !important;
+}
+
+.rbc-event-label {
+    display: none !important;
+}
+
+.rbc-date-cell {
+    height: max-content;
+}
+
+.rbc-events-container {
+    width: 100% !important;
+}
+
+.rbc-button-link.rbc-show-more {
+    color: #C41C1C;
+}
+
+.rbc-toolbar-label, .rbc-btn-group:nth-child(2)>button {
+    /* border: 1px solid red; */
+    /* display: none; */
+}

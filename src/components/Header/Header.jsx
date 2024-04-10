@@ -13,6 +13,7 @@ import { Link, NavLink } from "react-router-dom";
 import HomeIcon from "@mui/icons-material/Home";
 import LockResetIcon from "@mui/icons-material/LockReset";
 import LogoutIcon from "@mui/icons-material/Logout";
+import useAuth from "../../Hooks/useAuth";
 
 const renderIconButton = (props, ref) => {
   return (
@@ -32,6 +33,13 @@ const renderIconButton = (props, ref) => {
 };
 
 function Header() {
+  const authData = useAuth();
+  const role = authData ? authData?.role : null;
+
+  const handleLogout = () => {
+    localStorage.clear();
+    window.location.href = "/login";
+  };
   return (
     <>
       <Box sx={{ flexGrow: 1 }}>
@@ -59,23 +67,43 @@ function Header() {
             <Box sx={{ flexGrow: 0 }}>
               <Dropdown renderToggle={renderIconButton} placement="leftStart">
                 <Dropdown.Item>
+                  {(role && role === "SuperAdmin") || role === "Admin" ? (
+                    <Link
+                      onClick={() => {
+                        window.location.href = "/assign-workout";
+                      }}
+                      className="text-black text-decoration-none"
+                    >
+                      <span className="mx-2">
+                        <LockResetIcon />
+                      </span>
+                      Assign Workouts
+                    </Link>
+                  ) : (
+                    ""
+                  )}
+                </Dropdown.Item>
+                <Dropdown.Item>
                   <Link
-                    to="/profile"
+                    onClick={() => {
+                      window.location.href = "/profile";
+                    }}
                     className="text-black text-decoration-none"
                   >
                     <span className="mx-2">
-                      <LockResetIcon />
+                      <AccountCircleIcon />
                     </span>
                     Profile
                   </Link>
                 </Dropdown.Item>
                 <Dropdown.Item>
                   <Link
-                    to="/logout"
+                    onClick={() => handleLogout()}
+                    // to="/logout"
                     className="text-black text-decoration-none"
                   >
                     <span className="mx-2">
-                      <HomeIcon />
+                      <LogoutIcon />
                     </span>
                     Logout
                   </Link>
